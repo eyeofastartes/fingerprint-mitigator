@@ -58,6 +58,10 @@
       cursor: pointer;
     }
     .theme-btn:hover { background: var(--border); color: var(--text); }
+    .preset-controls { display: flex; gap: 6px; }
+    #preset-selector { flex: 1; min-width: 0; }
+    #make-default { flex-shrink: 0; font-size: 12px; white-space: nowrap; }
+    #make-default:disabled { opacity: 0.5; cursor: default; }
     /* Quick-access power icon — same role as the master button below,
        but reachable without scrolling. Red when site is disabled. */
     .power-btn.is-off {
@@ -389,8 +393,9 @@
   <div class="toggle-row">
     <div style="flex:1">
       <div class="label" style="margin-bottom:4px">Browser preset</div>
-      <div class="desc" style="margin-bottom:6px">Picking a preset overwrites UA / Sec-CH-UA / WebGL / etc. for this site.</div>
-      <select id="preset-selector" style="width:100%; padding:4px 6px; font-size:13px; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:4px">
+      <div class="desc" style="margin-bottom:6px">Pick a preset for this site, or make it the global default. Site overrides take priority.</div>
+      <div class="preset-controls">
+      <select id="preset-selector" aria-label="Browser preset" style="padding:4px 6px; font-size:13px; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:4px">
         <option value="">— Apply a preset —</option>
         <optgroup label="Chrome">
           <option value="chrome-148-win">Chrome 148 / Windows</option>
@@ -414,6 +419,8 @@
           <option value="safari-17-mac">Safari 17 / macOS</option>
         </optgroup>
       </select>
+      <button id="make-default" type="button" class="theme-btn" title="Use this preset by default on all sites without overriding per-site settings" disabled>Make Default</button>
+      </div>
     </div>
   </div>
 

@@ -74,6 +74,7 @@ let currentDomain = "";
 let activeTabId = null;
 let disabledDomains = {};
 let siteOverrides = {};
+let globalDefaultPreset = null;
 
 const $url = document.getElementById("site-url");
 const $masterToggle = document.getElementById("site-toggle");
@@ -159,6 +160,7 @@ const $subCheckEls = Array.from(document.querySelectorAll("[data-subcheck-key]")
 const $valueEls    = Array.from(document.querySelectorAll("[data-value-key]"));
 const $resetBtn    = document.getElementById("reset-site");
 const $presetSelector = document.getElementById("preset-selector");
+const $makeDefaultBtn = document.getElementById("make-default");
 
 function applyToggleStates() {
   applyPresetSelection();
@@ -278,15 +280,17 @@ function setSubCheck(subKey, on) {
   if (activeTabId) chrome.tabs.reload(activeTabId);
 }
 function getValueOverride(valueKey, defaultValue) {
+  const fallback = globalDefaultPreset?.values?.[valueKey] ?? defaultValue;
   const key = normalizeDomain(currentDomain);
-  if (!key) return defaultValue;
+  if (!key) return fallback;
   const matchKey = findParentKey(siteOverrides, key);
-  if (!matchKey) return defaultValue;
+  if (!matchKey) return fallback;
   const ov = siteOverrides[matchKey];
-  if (!ov.values || ov.values[valueKey] === undefined) return defaultValue;
+  if (!ov.values || ov.values[valueKey] === undefined) return fallback;
   return ov.values[valueKey];
 }
 function setValueOverride(valueKey, value, defaultValue) {
+  defaultValue = globalDefaultPreset?.values?.[valueKey] ?? defaultValue;
   const key = normalizeDomain(currentDomain);
   if (!key) return;
   if (!siteOverrides[key]) siteOverrides[key] = {};
@@ -379,13 +383,15 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
   if (changes.disabledDomains) disabledDomains = changes.disabledDomains.newValue || {};
   if (changes.siteOverrides) siteOverrides = changes.siteOverrides.newValue || {};
-  if (changes.disabledDomains || changes.siteOverrides) applyToggleStates();
+  if (changes.globalDefaultPreset) globalDefaultPreset = changes.globalDefaultPreset.newValue || null;
+  if (changes.disabledDomains || changes.siteOverrides || changes.globalDefaultPreset) applyToggleStates();
 });
 
 // ── Init ──────────────────────────────────────────────────────────────
-chrome.storage.local.get(["disabledDomains", "siteOverrides"], (s) => {
+chrome.storage.local.get(["disabledDomains", "siteOverrides", "globalDefaultPreset"], (s) => {
   disabledDomains = s.disabledDomains || {};
   siteOverrides = s.siteOverrides || {};
+  globalDefaultPreset = s.globalDefaultPreset || null;
   applyToggleStates();
 });
 
@@ -535,7 +541,7 @@ function renderLog() {
         ? "category off"
         : (explicitOverride
             ? (matchKey === key ? "this site" : "inherited:" + matchKey)
-            : "default");
+            : (globalDefaultPreset?.values?.[vk] !== undefined ? "global default" : "default"));
       const valueClass = !catOn ? "off" : (isOverride ? "override" : "");
       lines.push(
         `    ${pad(vk, 22)} = ` +
@@ -753,7 +759,10 @@ function applyPresetSelection() {
   if (!$presetSelector) return;
   const key = normalizeDomain(currentDomain);
   const matchKey = findParentKey(siteOverrides, key);
-  const values = matchKey ? siteOverrides[matchKey].values || {} : {};
+  const values = {
+    ...globalDefaultPreset?.values,
+    ...(matchKey ? siteOverrides[matchKey].values : {}),
+  };
   const presetId = Object.keys(PRESETS).find(id =>
     Object.entries(PRESETS[id]).every(([name, value]) => values[name] === value)
   );
@@ -764,6 +773,11 @@ function applyPresetSelection() {
   $presetSelector.querySelector('option[value=""]').textContent =
     hasPresetValues ? "Custom settings" : "Apply a preset";
   $presetSelector.disabled = !key;
+  if ($makeDefaultBtn) {
+    const isDefault = !!presetId && globalDefaultPreset?.id === presetId;
+    $makeDefaultBtn.disabled = !key || !presetId || isDefault;
+    $makeDefaultBtn.textContent = isDefault ? "Default" : "Make Default";
+  }
 }
 
 $presetSelector?.addEventListener("change", () => {
@@ -787,6 +801,23 @@ $presetSelector?.addEventListener("change", () => {
     if (activeTabId) chrome.tabs.reload(activeTabId);
   });
   applyToggleStates();
+});
+
+$makeDefaultBtn?.addEventListener("click", () => {
+  const presetId = $presetSelector.value;
+  if (!presetId || !PRESETS[presetId]) return;
+  const nextDefault = { id: presetId, values: { ...PRESETS[presetId] } };
+  $makeDefaultBtn.disabled = true;
+  chrome.storage.local.set({ globalDefaultPreset: nextDefault }, () => {
+    if (chrome.runtime.lastError) {
+      console.error("Failed to save global default preset:", chrome.runtime.lastError.message);
+      applyToggleStates();
+      return;
+    }
+    globalDefaultPreset = nextDefault;
+    applyToggleStates();
+    if (activeTabId) chrome.tabs.reload(activeTabId);
+  });
 });
 
 // ── Reset / manage buttons ────────────────────────────────────────────
