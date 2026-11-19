@@ -274,6 +274,27 @@ async function updateSecChUaRules(stored) {
     });
   }
 
+  addRules.push({
+    id: 102,
+    priority: 1,
+    action: {
+      type: "modifyHeaders",
+      responseHeaders: [{
+        header: "Content-Security-Policy",
+        operation: "append",
+        value: "worker-src 'none'",
+      }],
+    },
+    condition: {
+      urlFilter: "|http",
+      resourceTypes: ["main_frame", "sub_frame"],
+      excludedRequestDomains: [
+        ...ALWAYS_EXCLUDE_HOSTS,
+        ...excludedHostsForCategory("workers", stored),
+      ],
+    },
+  });
+
   // Clear all prior dynamic rules and reinstall.
   try {
     const existing = await chrome.declarativeNetRequest.getDynamicRules();
