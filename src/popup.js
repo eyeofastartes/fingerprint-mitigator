@@ -353,11 +353,14 @@ document.querySelectorAll("[data-value-key]").forEach(el => {
   el.addEventListener("change", () => {
     let v = el.value;
     // Coerce numeric / boolean / null strings back to native types
-    if (el.type === "number") v = Number(v);
-    else if (v === "true") v = true;
-    else if (v === "false") v = false;
-    else if (v === "null") v = null;
-    const typedDefault = el.type === "number" ? Number(def) :
+    if (key !== "identity.platform") {
+      if (el.type === "number") v = Number(v);
+      else if (v === "true") v = true;
+      else if (v === "false") v = false;
+      else if (v === "null") v = null;
+    }
+    const typedDefault = key === "identity.platform" ? def :
+                         el.type === "number" ? Number(def) :
                          def === "true" ? true :
                          def === "false" ? false :
                          def === "null" ? null : def;
@@ -564,6 +567,7 @@ document.querySelectorAll(".tab").forEach(el => {
 const PRESETS = {
   // ── Chrome ──
   "chrome-148-win": {
+    "identity.platform": "Win32",
     "identity.customUA": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
     "identity.uaDataMode": "normal",
     "clientHints.mode": "set",
@@ -581,6 +585,7 @@ const PRESETS = {
     "webgpu.canvasFormat": "bgra8unorm",
   },
   "chrome-148-mac": {
+    "identity.platform": "MacIntel",
     "identity.customUA": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
     "identity.uaDataMode": "normal",
     "clientHints.mode": "set",
@@ -598,6 +603,7 @@ const PRESETS = {
     "webgpu.canvasFormat": "rgba8unorm",
   },
   "chrome-148-linux": {
+    "identity.platform": "Linux x86_64",
     "identity.customUA": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
     "identity.uaDataMode": "normal",
     "clientHints.mode": "set",
@@ -615,6 +621,7 @@ const PRESETS = {
     "webgpu.canvasFormat": "bgra8unorm",
   },
   "chrome-148-android": {
+    "identity.platform": "Linux armv8l",
     "identity.customUA": "Mozilla/5.0 (Linux; Android 14; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
     "identity.uaDataMode": "normal",
     "clientHints.mode": "set",
@@ -638,6 +645,7 @@ const PRESETS = {
   //    vivaldi.com itself: their platform-detect.js does
   //    `ua.match(/Vivaldi/)` to add an "is-vivaldi" class.) ──
   "vivaldi-79-win": {
+    "identity.platform": "Win32",
     "identity.customUA": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Vivaldi/7.9.3970.64",
     "identity.uaDataMode": "normal",
     "clientHints.mode": "set",
@@ -655,6 +663,7 @@ const PRESETS = {
     "webgpu.canvasFormat": "bgra8unorm",
   },
   "vivaldi-79-mac": {
+    "identity.platform": "MacIntel",
     "identity.customUA": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Vivaldi/7.9.3970.64",
     "identity.uaDataMode": "normal",
     "clientHints.mode": "set",
@@ -672,6 +681,7 @@ const PRESETS = {
     "webgpu.canvasFormat": "rgba8unorm",
   },
   "vivaldi-79-linux": {
+    "identity.platform": "Linux x86_64",
     "identity.customUA": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Vivaldi/7.9.3970.64",
     "identity.uaDataMode": "normal",
     "clientHints.mode": "set",
@@ -690,6 +700,7 @@ const PRESETS = {
   },
   // ── Edge ──
   "edge-148-win": {
+    "identity.platform": "Win32",
     "identity.customUA": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0",
     "identity.uaDataMode": "normal",
     "clientHints.mode": "set",
@@ -708,6 +719,7 @@ const PRESETS = {
   },
   // ── Firefox (no Sec-CH-UA; no userAgentData) ──
   "firefox-142-win": {
+    "identity.platform": "Win32",
     "identity.customUA": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0",
     "identity.uaDataMode": "remove",
     "clientHints.mode": "remove",
@@ -715,6 +727,7 @@ const PRESETS = {
     "webgl.renderer": "Mozilla",
   },
   "firefox-142-mac": {
+    "identity.platform": "MacIntel",
     "identity.customUA": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.7; rv:142.0) Gecko/20100101 Firefox/142.0",
     "identity.uaDataMode": "remove",
     "clientHints.mode": "remove",
@@ -723,6 +736,7 @@ const PRESETS = {
   },
   // ── Safari (no Sec-CH-UA; no userAgentData) ──
   "safari-17-mac": {
+    "identity.platform": "MacIntel",
     "identity.customUA": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Safari/605.1.15",
     "identity.uaDataMode": "remove",
     "clientHints.mode": "remove",
