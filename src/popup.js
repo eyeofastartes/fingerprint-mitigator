@@ -158,8 +158,10 @@ for (const cat of CATEGORIES) {
 const $subCheckEls = Array.from(document.querySelectorAll("[data-subcheck-key]"));
 const $valueEls    = Array.from(document.querySelectorAll("[data-value-key]"));
 const $resetBtn    = document.getElementById("reset-site");
+const $presetSelector = document.getElementById("preset-selector");
 
 function applyToggleStates() {
+  applyPresetSelection();
   const masked = isMasked();
   // Button toggles between green "Disable on this site" (currently
   // active) and red "Enable on this site" (currently off).
@@ -747,7 +749,23 @@ const PRESETS = {
   },
 };
 
-const $presetSelector = document.getElementById("preset-selector");
+function applyPresetSelection() {
+  if (!$presetSelector) return;
+  const key = normalizeDomain(currentDomain);
+  const matchKey = findParentKey(siteOverrides, key);
+  const values = matchKey ? siteOverrides[matchKey].values || {} : {};
+  const presetId = Object.keys(PRESETS).find(id =>
+    Object.entries(PRESETS[id]).every(([name, value]) => values[name] === value)
+  );
+  const hasPresetValues = Object.values(PRESETS).some(preset =>
+    Object.keys(preset).some(name => values[name] !== undefined)
+  );
+  $presetSelector.value = presetId || "";
+  $presetSelector.querySelector('option[value=""]').textContent =
+    hasPresetValues ? "Custom settings" : "Apply a preset";
+  $presetSelector.disabled = !key;
+}
+
 $presetSelector?.addEventListener("change", () => {
   const presetId = $presetSelector.value;
   if (!presetId || !PRESETS[presetId]) return;
@@ -761,12 +779,14 @@ $presetSelector?.addEventListener("change", () => {
   for (const [k, v] of Object.entries(PRESETS[presetId])) {
     siteOverrides[key].values[k] = v;
   }
-  chrome.storage.local.set({ siteOverrides });
+  chrome.storage.local.set({ siteOverrides }, () => {
+    if (chrome.runtime.lastError) {
+      console.error("Failed to save browser preset:", chrome.runtime.lastError.message);
+      return;
+    }
+    if (activeTabId) chrome.tabs.reload(activeTabId);
+  });
   applyToggleStates();
-  if (activeTabId) chrome.tabs.reload(activeTabId);
-  // Reset the selector to its placeholder so re-picking the same
-  // preset re-applies it (useful after manual tweaks).
-  $presetSelector.value = "";
 });
 
 // ── Reset / manage buttons ────────────────────────────────────────────
@@ -802,7 +822,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
   if (!tab) return;
   activeTabId = tab.id;
   const url = tab.url || "";
-  try { currentDomain = new URL(url).hostname; } catch { currentDomain = ""; }
+  try { currentDomain = isToggleableUrl(url) ? new URL(url).hostname : ""; } catch { currentDomain = ""; }
 
   if (!isToggleableUrl(url)) {
     $url.textContent = "(masking not available on this page)";
